@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5433/finance_db?sslmode=disable
-    username: finance_user
-    password: finance_password
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -18,9 +18,9 @@ spring:
     locations: classpath:db/migration
 
 server:
-  port: 18080
+  port: ${SERVER_PORT}
 
 security:
   jwt:
     secret: ${JWT_SECRET}
-    expiration-ms: 3600000
+    expiration-ms: ${JWT_EXPIRATION_MS}
