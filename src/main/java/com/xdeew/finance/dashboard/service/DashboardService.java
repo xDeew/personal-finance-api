@@ -22,8 +22,8 @@ public class DashboardService {
     private final AccountRepository accountRepository;
 
     public DashboardService(UserService userService,
-                            TransactionRepository transactionRepository,
-                            AccountRepository accountRepository) {
+            TransactionRepository transactionRepository,
+            AccountRepository accountRepository) {
         this.userService = userService;
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
@@ -68,5 +68,35 @@ public class DashboardService {
                 currentBalance,
                 transactionCount
         );
+
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<com.xdeew.finance.dashboard.dto.CategorySummaryResponse> getCategorySummary(
+            String userEmail,
+            int month,
+            int year,
+            com.xdeew.finance.transaction.model.TransactionType type
+    ) {
+        User user = userService.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        YearMonth yearMonth = YearMonth.of(year, month);
+        LocalDateTime startDate = yearMonth.atDay(1).atStartOfDay();
+        LocalDateTime endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59);
+
+        return transactionRepository.findCategorySummaryByUserIdAndTypeAndDateRange(
+                user.getId(),
+                type,
+                startDate,
+                endDate
+        )
+                .stream()
+                .map(item -> new com.xdeew.finance.dashboard.dto.CategorySummaryResponse(
+                item.getCategoryId(),
+                item.getCategoryName(),
+                item.getTotalAmount()
+        ))
+                .toList();
     }
 }

@@ -3,6 +3,7 @@ package com.xdeew.finance.account.service;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.xdeew.finance.account.dto.AccountResponse;
 import com.xdeew.finance.account.dto.CreateAccountRequest;
@@ -22,6 +23,7 @@ public class AccountService {
         this.userService = userService;
     }
 
+    @Transactional
     public AccountResponse createAccount(String userEmail, CreateAccountRequest request) {
         User user = userService.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -39,6 +41,7 @@ public class AccountService {
         return mapToResponse(savedAccount);
     }
 
+    @Transactional(readOnly = true)
     public List<AccountResponse> getAccounts(String userEmail) {
         User user = userService.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -47,6 +50,20 @@ public class AccountService {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    @Transactional
+    public AccountResponse deactivateAccount(String userEmail, Long accountId) {
+        User user = userService.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        Account account = accountRepository.findByIdAndUserId(accountId, user.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Account not found"));
+
+        account.setActive(false);
+        Account savedAccount = accountRepository.save(account);
+
+        return mapToResponse(savedAccount);
     }
 
     private AccountResponse mapToResponse(Account account) {

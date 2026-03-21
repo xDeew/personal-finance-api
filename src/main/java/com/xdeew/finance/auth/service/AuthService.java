@@ -7,6 +7,7 @@ import com.xdeew.finance.auth.dto.LoginRequest;
 import com.xdeew.finance.auth.dto.LoginResponse;
 import com.xdeew.finance.auth.dto.RegisterRequest;
 import com.xdeew.finance.auth.dto.RegisterResponse;
+import com.xdeew.finance.category.service.DefaultCategoryService;
 import com.xdeew.finance.common.exception.UnauthorizedException;
 import com.xdeew.finance.user.model.User;
 import com.xdeew.finance.user.model.UserRole;
@@ -18,11 +19,16 @@ public class AuthService {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final DefaultCategoryService defaultCategoryService;
 
-    public AuthService(UserService userService, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(UserService userService,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService,
+            DefaultCategoryService defaultCategoryService) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.defaultCategoryService = defaultCategoryService;
     }
 
     public RegisterResponse register(RegisterRequest request) {
@@ -30,8 +36,7 @@ public class AuthService {
             throw new IllegalArgumentException("Email is already in use");
         }
 
-        User user;
-        user = User.builder()
+        User user = User.builder()
                 .email(request.email())
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .firstName(request.firstName())
@@ -40,6 +45,8 @@ public class AuthService {
                 .build();
 
         User savedUser = userService.save(user);
+
+        defaultCategoryService.createDefaultCategoriesIfNeeded(savedUser);
 
         return new RegisterResponse(
                 savedUser.getId(),
@@ -58,6 +65,7 @@ public class AuthService {
         if (!passwordMatches) {
             throw new UnauthorizedException("Invalid email or password");
         }
+
         String token = jwtService.generateToken(user);
 
         return new LoginResponse(

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.xdeew.finance.budget.dto.BudgetResponse;
 import com.xdeew.finance.budget.dto.CreateBudgetRequest;
+import com.xdeew.finance.budget.dto.UpdateBudgetRequest;
 import com.xdeew.finance.budget.model.Budget;
 import com.xdeew.finance.budget.repository.BudgetRepository;
 import com.xdeew.finance.category.model.Category;
@@ -70,6 +71,53 @@ public class BudgetService {
 
         Budget savedBudget = budgetRepository.save(budget);
         return mapToResponse(savedBudget, user.getId());
+    }
+
+    @Transactional
+    public BudgetResponse updateBudget(String userEmail, Long budgetId, UpdateBudgetRequest request) {
+        User user = userService.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        Budget existingBudget = budgetRepository.findByIdAndUserId(budgetId, user.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Budget not found"));
+
+        Category category = categoryRepository.findByIdAndUserId(request.categoryId(), user.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+
+        if (category.getType() != CategoryType.EXPENSE) {
+            throw new IllegalArgumentException("Budgets can only be created for expense categories");
+        }
+
+        boolean exists = budgetRepository.existsByUserIdAndCategoryIdAndMonthAndYearAndIdNot(
+                user.getId(),
+                category.getId(),
+                request.month(),
+                request.year(),
+                budgetId
+        );
+
+        if (exists) {
+            throw new IllegalArgumentException("Budget already exists for this category and month");
+        }
+
+        existingBudget.setCategory(category);
+        existingBudget.setAmount(request.amount());
+        existingBudget.setMonth(request.month());
+        existingBudget.setYear(request.year());
+
+        Budget savedBudget = budgetRepository.save(existingBudget);
+        return mapToResponse(savedBudget, user.getId());
+    }
+
+    @Transactional
+    public void deleteBudget(String userEmail, Long budgetId) {
+        User user = userService.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        Budget budget = budgetRepository.findByIdAndUserId(budgetId, user.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Budget not found"));
+
+        budgetRepository.delete(budget);
     }
 
     @Transactional(readOnly = true)

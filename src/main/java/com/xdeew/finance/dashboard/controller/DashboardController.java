@@ -25,4 +25,19 @@ public class DashboardController {
             @RequestParam int year) {
         return dashboardService.getSummary(authentication.getName(), month, year);
     }
+
+    @GetMapping("/category-summary")
+    public java.util.List<com.xdeew.finance.dashboard.dto.CategorySummaryResponse> getCategorySummary(
+            Authentication authentication,
+            @RequestParam int month,
+            @RequestParam int year,
+            @RequestParam com.xdeew.finance.transaction.model.TransactionType type
+    ) {
+        return dashboardService.getCategorySummary(
+                authentication.getName(),
+                month,
+                year,
+                type
+        );
+    }
 }
